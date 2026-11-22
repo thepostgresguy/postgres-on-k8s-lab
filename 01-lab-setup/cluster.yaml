@@ -1,0 +1,49 @@
+# Part 1: a three-instance Postgres cluster managed by CloudNativePG.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg-lab
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.7-system-trixie
+
+  # requests == limits gives the pods Guaranteed QoS (more on this in Part 7).
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  postgresql:
+    parameters:
+      shared_buffers: 128MB
+      # Setting pg_stat_statements.* makes CloudNativePG add the library
+      # to shared_preload_libraries for you.
+      pg_stat_statements.max: "10000"
+      pg_stat_statements.track: all
+
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+      postInitApplicationSQL:
+        - CREATE EXTENSION IF NOT EXISTS pg_stat_statements
+        # Lets the app user run the pgtools monitoring scripts.
+        - GRANT pg_monitor TO app
+
+  # kind's default StorageClass (local-path) binds on first consumer,
+  # so each volume is created on the node its pod lands on (Part 6).
+  storage:
+    size: 1Gi
+
+  # One instance per zone. Three replicas on one node is one failure
+  # with extra steps.
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          cnpg.io/cluster: pg-lab

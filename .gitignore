@@ -1,0 +1,3 @@
+.cache/
+*.kubeconfig
+.DS_Store

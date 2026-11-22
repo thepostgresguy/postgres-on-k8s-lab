@@ -1,0 +1,69 @@
+# A client pod with psql, pgbench and pgtools, running inside the cluster
+# next to the database, the way you would debug a real one.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgtools
+  labels:
+    app: pgtools
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pgtools
+  template:
+    metadata:
+      labels:
+        app: pgtools
+    spec:
+      initContainers:
+        # Downloads pgtools at the commit pinned in versions.env.
+        - name: fetch-pgtools
+          image: curlimages/curl:8.23.0
+          env:
+            - name: PGTOOLS_REF
+              value: d331a8bf46cb77d4f04a1cba0992a6c49ba3b744
+          command: ["sh", "-c"]
+          args:
+            - >-
+              curl -fsSL "https://codeload.github.com/thepostgresguy/pgtools/tar.gz/${PGTOOLS_REF}"
+              | tar -xz -C /pgtools --strip-components=1
+          volumeMounts:
+            - name: pgtools
+              mountPath: /pgtools
+      containers:
+        - name: toolbox
+          # Same image as the database, so psql and pgbench match the server.
+          image: ghcr.io/cloudnative-pg/postgresql:18.7-system-trixie
+          command: ["sleep", "infinity"]
+          workingDir: /pgtools
+          env:
+            # The -rw service always points at the current primary.
+            - name: PGHOST
+              value: pg-lab-rw
+            - name: PGDATABASE
+              value: app
+            - name: PGSSLMODE
+              value: require
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: pg-lab-app
+                  key: username
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pg-lab-app
+                  key: password
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+          volumeMounts:
+            - name: pgtools
+              mountPath: /pgtools
+      volumes:
+        - name: pgtools
+          emptyDir: {}

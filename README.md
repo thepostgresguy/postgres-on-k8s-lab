@@ -25,6 +25,48 @@ make down           # delete everything
 **You need:** Docker (or Podman), [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
 `v0.33.0`, `kubectl` and `make`. Give Docker about 4 CPUs and 8 GB of memory.
 
+CI tests the lab on Linux. macOS works the same way, with make and bash already installed.
+
+### On Windows
+
+The cluster runs as Linux containers inside kind on every OS. Only the commands you type
+depend on your machine.
+
+**Recommended: WSL2.** Inside WSL, everything works exactly as on Linux.
+
+1. Install [WSL2](https://learn.microsoft.com/windows/wsl/install) with Ubuntu, and
+   [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/) with the WSL2
+   backend. In Docker Desktop, turn on **Settings → Resources → WSL integration** for your Ubuntu
+   distribution.
+2. Open the Ubuntu shell and install the tools there: `sudo apt install make`, plus
+   [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installing-from-release-binaries) and
+   [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/) for Linux.
+3. Clone the repo into your WSL home folder (`~/`), not under `/mnt/c/`. Files on the Windows
+   drive are slow to access from WSL and can lose their execute permission.
+4. Run the quick start above from that shell.
+
+**Without WSL (PowerShell).** `make` and the bash scripts won't run, but every step is a plain
+`kind` or `kubectl` command. This is what `make up load` does:
+
+```powershell
+kind create cluster --name pg-k8s-lab --image kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5 --config kind/cluster.yaml --wait 2m
+kubectl apply --server-side -f https://github.com/cloudnative-pg/cloudnative-pg/releases/download/v1.30.2/cnpg-1.30.2.yaml
+kubectl -n cnpg-system rollout status deployment/cnpg-controller-manager --timeout=5m
+kubectl apply -f 01-lab-setup/cluster.yaml   # if the webhook isn't ready yet, wait a few seconds and run it again
+kubectl wait cluster/pg-lab --for=condition=Ready --timeout=10m
+kubectl apply -f 01-lab-setup/toolbox.yaml
+kubectl rollout status deployment/pgtools --timeout=5m
+kubectl exec deploy/pgtools -- pgbench -i -s 10
+```
+
+Then run pgtools scripts with `kubectl exec deploy/pgtools -- psql -X -f top-queries.sql`, and
+clean up with `kind delete cluster --name pg-k8s-lab`. The `tests/` scripts need bash, so on
+plain Windows you check each part by hand, following its README.
+
+**Line endings:** the repo's `.gitattributes` keeps shell scripts on Unix (LF) line endings
+even when Git on Windows converts the other files. If you see `/bin/bash^M: bad interpreter`,
+your clone is older than that file: delete it and clone again.
+
 ## The series
 
 Each part has its own folder and a git tag (`part-01`, `part-02`…). The links in each

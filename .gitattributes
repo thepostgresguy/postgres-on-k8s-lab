@@ -1,0 +1,8 @@
+# Keep Unix line endings on every OS. Without this, Git on Windows
+# (core.autocrlf=true) checks scripts out with CRLF and bash fails with
+# "/bin/bash^M: bad interpreter".
+*.sh        text eol=lf
+Makefile    text eol=lf
+*.env       text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf

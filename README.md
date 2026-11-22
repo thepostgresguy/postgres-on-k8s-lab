@@ -67,7 +67,7 @@ pinned in [`versions.env`](versions.env), and CI runs the lab every week to catc
 | Kubernetes (kind node) | v1.37.0 |
 | CloudNativePG | 1.30.2 |
 | PostgreSQL | 18.7 (`ghcr.io/cloudnative-pg/postgresql:18.7-system-trixie`) |
-| pgtools | `d331a8b` |
+| pgtools | `0813dde` |
 
 To upgrade, change `versions.env` and the manifests, then run `make check-pins`.
 

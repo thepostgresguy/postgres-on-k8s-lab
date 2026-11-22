@@ -22,7 +22,7 @@ spec:
           image: curlimages/curl:8.23.0
           env:
             - name: PGTOOLS_REF
-              value: d331a8bf46cb77d4f04a1cba0992a6c49ba3b744
+              value: 0813dded81db08e96b5784f4abc51ef9fabdeb7b
           command: ["sh", "-c"]
           args:
             - >-
